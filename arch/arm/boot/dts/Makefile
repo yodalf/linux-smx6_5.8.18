@@ -410,6 +410,12 @@ dtb-$(CONFIG_SOC_IMX53) += \
 	imx53-usbarmory.dtb \
 	imx53-voipac-bsb.dtb
 dtb-$(CONFIG_SOC_IMX6Q) += \
+	kontron/imx6q-smx6-lvds-pm070wl4.dtb \
+	kontron/imx6q-smx6-lvds-ld101.dtb \
+	kontron/imx6q-smx6-lvds-lb121.dtb \
+	kontron/imx6q-smx6-lcd-pm070wl4.dtb \
+	kontron/imx6q-smx6-lcd-ld101.dtb \
+	kontron/imx6q-smx6-lcd-lb121.dtb \
 	imx6dl-apf6dev.dtb \
 	imx6dl-aristainetos_4.dtb \
 	imx6dl-aristainetos_7.dtb \
