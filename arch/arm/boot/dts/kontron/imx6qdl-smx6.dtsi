@@ -1,0 +1,460 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2020 Kontron Europe GmbH
+ */
+
+#if !defined(SMX6_PANEL_LCD) && !defined(SMX6_PANEL_LVDS)
+	#error Please define panel interface type
+#endif
+#if defined(SMX6_PANEL_LCD) && defined(SMX6_PANEL_LVDS)
+	#error Please define only one panel interface type
+#endif
+
+#if !defined(SMX6_PANEL_24BIT) && !defined(SMX6_PANEL_18BIT)
+	#error Please define panel depth
+#endif
+#if defined(SMX6_PANEL_24BIT) && defined(SMX6_PANEL_18BIT)
+	#error Please define only one panel depth
+#endif
+
+#ifdef SMX6_PANEL_24BIT
+	#define SMX6_PANEL_PIXEL_DEPTH	24
+	#define SMX6_PANEL_PIXEL_FORMAT	"rgb24"
+#endif
+
+#ifdef SMX6_PANEL_18BIT
+	#define SMX6_PANEL_PIXEL_DEPTH	18
+	#define SMX6_PANEL_PIXEL_FORMAT	"lvds666"
+#endif
+
+/* I2C mapping:
+ * - IMX i2c3 is not available for SMX6_PTP case
+ */
+#define smarc_i2c_gp i2c1
+	&i2c1 {
+		status = "okay";
+	};
+#ifndef SMX6_HDCP
+	#define smarc_i2c_hdmi i2c2
+	&i2c2 {
+		status = "okay";
+	};
+#endif
+#ifdef SMX6_PTP
+	&i2c3 {
+		status = "disabled";
+	};
+#else
+	#define smarc_i2c_pm i2c3
+	&i2c3 {
+		status = "okay";
+	};
+#endif
+#define smarc_i2c_cam i2c_cam
+#define smarc_i2c_lcd i2c_lcd
+
+#ifdef SMX6_RTC_RV8803
+&i2c_intern {
+	rtc@32 {
+		compatible = "microcrystal,rv8803";
+		reg = <0x32>;
+	};
+};
+#endif
+
+#define smarc_ser0 uart1
+#define smarc_ser1 uart2
+#define smarc_ser2 uart4
+#define smarc_ser3 uart5
+
+#define smarc_gbe fec
+&fec {
+#ifdef SMX6_PTP
+	pinctrl-0 = <&pinctrl_enet>, <&pinctrl_enet_ptp>;
+#endif
+	fsl,magic-packet;
+};
+
+#define smarc_spi0 ecspi4
+#define smarc_spi1 ecspi2
+
+#ifdef SMX6_HIDE_SPI_FLASH
+&smarc_flash {
+	status = "disabled";
+};
+#else
+&smarc_flash {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	reg = <0>;
+
+	partition@0 {
+		label = "bootloader";
+		reg = <0x000000 0x0c0000>;
+		read-only;
+	};
+	partition@c0000 {
+		label = "environment";
+		reg = <0x0c0000 0x010000>;
+	};
+	partition@d0000 {
+		label = "user";
+		/* zero size means "use the rest"
+		 * should work both with w25q16dw and w25q64dw
+		 */
+		reg = <0x0d0000 0>;
+	};
+};
+#endif
+
+&smarc_spi1 {
+	spidev@0 {
+		compatible = "custom_spidev_device";
+		reg = <0>;
+		spi-max-frequency = <10000000>;
+	};
+};
+
+#define smarc_usb0 usbotg
+#define USB0_EN_OC_GPIO_PORT gpio5
+#define USB0_EN_OC_GPIO_NUM 18
+#define smarc_usb1 usbh1
+
+#define smarc_sdmmc usdhc2
+&usdhc2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usdhc2>;
+	bus-width = <8>;
+
+	/* per schematics, always constant */
+	cd-gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;
+};
+#define smarc_sdio usdhc3
+#define SMARC_SDIO_PWR_EN_GPIO <&gpio1 29 0>
+#ifndef SMX6_HIDE_EMMC
+&usdhc4 {
+	status = "okay";
+};
+#endif
+
+&pwm4 {
+	status = "okay";
+};
+
+&pcie {
+	fsl,max-link-speed = <1>;
+	wake-up-gpio = <&gpio6 18 GPIO_ACTIVE_LOW>;
+	/* Even for board without pcie switch, adding more reset GPIOs
+	   won't harm */
+	reset-gpio = <&gpio2  0 GPIO_ACTIVE_LOW>,
+		     <&gpio3 13 GPIO_ACTIVE_LOW>,
+		     <&gpio3 14 GPIO_ACTIVE_LOW>,
+		     <&gpio3 15 GPIO_ACTIVE_LOW>;
+
+	status = "okay";
+};
+
+#define smarc_can0 can1
+#define smarc_can1 can2
+
+&snvs_poweroff {
+	status = "okay";
+};
+
+/* Audio path:
+ *   audio sources ssi1, ssi2, ssi3 corresponds to audmux ports 1, 2, 7
+ *   audmux ports 3, 4, 5 correspond to SMARC interfaces I2S1, I2S2, I2S3
+ * usage:
+ *   - define SMX6_SSIn_AUDIO to enable SSIn as audio processor,
+ *   - define SMX6_SSIn_AUDIO_OUTPUT=M to route that audio to SMARC i2sM,
+ *     that will result into smarc_i2sM_audio label defined pointing to
+ *     node with audio processor and mux defined
+ *   - define codec and complete that definition of audio node in carrier dtsi
+ */
+
+#define SMARC_AUDIO_MCLK  <&clks IMX6QDL_CLK_CKO2>
+
+#if defined(SMX6_SSI1_AUDIO) || defined(SMX6_SSI2_AUDIO) || defined(SMX6_SSI3_AUDIO)
+	&audmux {
+		status = "okay";
+	};
+#endif
+
+#ifdef SMX6_SSI1_AUDIO
+	#if SMX6_SSI1_AUDIO_OUTPUT == 0
+		#define smarc_i2s0_audio ssi1_audio
+		#define SMX6_SSI1_MUX_EXT_PORT 3
+	#elif SMX6_SSI1_AUDIO_OUTPUT == 1
+		#define smarc_i2s1_audio ssi1_audio
+		#define SMX6_SSI1_MUX_EXT_PORT 4
+	#elif SMX6_SSI1_AUDIO_OUTPUT == 2
+		#define smarc_i2s2_audio ssi1_audio
+		#define SMX6_SSI1_MUX_EXT_PORT 5
+	#else
+		#error Invalid SMX6_SSI1_AUDIO_OUTPUT setting
+	#endif
+
+	&ssi1 {
+		status = "okay";
+	};
+
+	/ {
+		ssi1_audio: ssi1_audio {
+			ssi-controller = <&ssi1>;
+			mux-int-port = <1>;
+			mux-ext-port = <SMX6_SSI1_MUX_EXT_PORT>;
+		};
+	};
+#endif // SMX6_SSI1_AUDIO
+
+#ifdef SMX6_SSI2_AUDIO
+	#if SMX6_SSI2_AUDIO_OUTPUT == 0
+		#define smarc_i2s0_audio ssi2_audio
+		#define SMX6_SSI2_MUX_EXT_PORT 3
+	#elif SMX6_SSI2_AUDIO_OUTPUT == 1
+		#define smarc_i2s1_audio ssi2_audio
+		#define SMX6_SSI2_MUX_EXT_PORT 4
+	#elif SMX6_SSI2_AUDIO_OUTPUT == 2
+		#define smarc_i2s2_audio ssi2_audio
+		#define SMX6_SSI2_MUX_EXT_PORT 5
+	#else
+		#error Invalid SMX6_SSI2_AUDIO_OUTPUT setting
+	#endif
+
+	&ssi2 {
+		status = "okay";
+	};
+
+	/ {
+		ssi2_audio: ssi2_audio {
+			ssi-controller = <&ssi2>;
+			mux-int-port = <2>;
+			mux-ext-port = <SMX6_SSI2_MUX_EXT_PORT>;
+		};
+	};
+#endif // SMX6_SSI2_AUDIO
+
+#ifdef SMX6_SSI3_AUDIO
+	#if SMX6_SSI3_AUDIO_OUTPUT == 0
+		#define smarc_i2s0_audio ssi3_audio
+		#define SMX6_SSI3_MUX_EXT_PORT 3
+	#elif SMX6_SSI3_AUDIO_OUTPUT == 1
+		#define smarc_i2s1_audio ssi3_audio
+		#define SMX6_SSI3_MUX_EXT_PORT 4
+	#elif SMX6_SSI3_AUDIO_OUTPUT == 2
+		#define smarc_i2s2_audio ssi3_audio
+		#define SMX6_SSI3_MUX_EXT_PORT 5
+	#else
+		#error Invalid SMX6_SSI3_AUDIO_OUTPUT setting
+	#endif
+
+	&ssi3 {
+		status = "okay";
+	};
+
+	/ {
+		ssi3_audio: ssi3_audio {
+			ssi-controller = <&ssi3>;
+			mux-int-port = <7>;
+			mux-ext-port = <SMX6_SSI3_MUX_EXT_PORT>;
+		};
+	};
+#endif // SMX6_SSI3_AUDIO
+
+/* Phyically CLKO1 is routed to CAM_MCK... but current clk-imx6q code feeds
+ * CLKO1 signal from from CLK_CKO2 (via bit 8 of CCM_CCOSR register, hidden
+ * behind clk object named "cko") */
+#define SMARC_SERIAL_CAMERA_MCLK	<&clks IMX6QDL_CLK_CKO2>
+#define SMARC_SERIAL_CAMERA_POWER_GPIO	<&gpio3 0 GPIO_ACTIVE_HIGH>
+#define SMARC_SERIAL_CAMERA_RESET_GPIO	<&gpio3 2 GPIO_ACTIVE_LOW>
+
+#ifdef SMX6_SERIAL_CAMERA
+
+#ifndef SMX6_SERIAL_CAMERA_ENDPOINT
+	#error Please define SMX6_SERIAL_CAMERA_ENDPOINT
+#endif
+
+#ifndef SMX6_SERIAL_CAMERA_CLOCK_LANES
+	#error Please define SMX6_SERIAL_CAMERA_CLOCK_LANES
+#endif
+
+#ifndef SMX6_SERIAL_CAMERA_DATA_LANES
+	#error Please define SMX6_SERIAL_CAMERA_DATA_LANES
+#endif
+
+&mipi_csi {
+	status = "okay";
+
+	port@0 {
+		reg = <0>;
+
+		mipi_csi2_in: endpoint {
+			remote-endpoint = <&SMX6_SERIAL_CAMERA_ENDPOINT>;
+			clock-lanes = <SMX6_SERIAL_CAMERA_CLOCK_LANES>;
+			data-lanes = <SMX6_SERIAL_CAMERA_DATA_LANES>;
+		};
+	};
+};
+#endif // SMX6_SERIAL_CAMERA
+
+#ifdef SMX6_PANEL_LCD
+	&lcd {
+		status = "okay";
+		interface-pix-fmt = SMX6_PANEL_PIXEL_FORMAT;
+
+		port {
+			display0_in: endpoint {
+				remote-endpoint = <&ipu1_di0_disp0>;
+			};
+		};
+
+		display-timings {
+			native-mode = <&lcd_panel_timings>;
+			lcd_panel_timings: panel {
+			};
+		};
+	};
+
+	&ipu1_di0_disp0 {
+		remote-endpoint = <&display0_in>;
+	};
+#endif
+
+#ifdef SMX6_PANEL_LVDS
+	&ldb {
+		status = "okay";
+
+		lvds-channel@0 {
+			fsl,data-mapping = "spwg";
+			fsl,data-width = <SMX6_PANEL_PIXEL_DEPTH>;
+			crtc = "ipu1-di0";
+			primary;
+			status = "okay";
+
+			display-timings {
+				native-mode = <&lvds_panel_timings>;
+				lvds_panel_timings: panel {
+				};
+			};
+		};
+	};
+#endif
+
+#define smarc_pwm_backlight pwm_backlight
+
+&hdmi {
+	ddc-i2c-bus = <&i2c2>;
+	// ipu_id = <0>;  // ???
+	// disp_id = <1>; //???
+	status = "okay";
+};
+
+&ipu1 {
+	use-ipu-clock;
+};
+
+/ {
+	aliases {
+		spi0 = &ecspi4;
+		spi1 = &ecspi2;
+		i2c3 = &i2c_intern;
+		i2c4 = &i2c_cam;
+		i2c5 = &i2c_lcd;
+	};
+
+	pwm_backlight: backlight { // lcd_backlight ??
+		compatible = "pwm-backlight";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_lcdbklt_en>;
+		pwms = <&pwm4 0 5000000>;
+		brightness-levels = <0 100>;
+		num-interpolated-steps = <100>;
+		default-brightness-level = <80>;
+		enable-gpios = <&gpio1 16 GPIO_ACTIVE_HIGH>;
+	};
+
+	lcdvdd { // ??? reg_smarc_lcdvdd: regulator-smarc-lcdvdd
+		compatible = "gpio-backlight";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_lcdvdd_en>;
+		gpios = <&gpio1 17 GPIO_ACTIVE_HIGH>;
+		default-on;
+	};
+
+	display-subsystem {
+		status = "okay";
+	};
+
+	// gpu-subsystem {       // ???
+	// 	status = "okay"; // ???
+	// };                    // ???
+
+	gpio-keys {
+		compatible = "gpio-keys";
+
+		power {
+			label = "Power";
+			gpios = <&gpio6 16 1>;
+			linux,code = <116>; /* KEY_POWER */
+			gpio-key,wakeup;
+			debounce-interval = <1>;
+		};
+
+		sleep {
+			label = "Sleep";
+			gpios = <&gpio6 17 1>;
+			linux,code = <142>; /* KEY_SLEEP */
+			gpio-key,wakeup;
+			debounce-interval = <1>;
+		};
+
+		lid {
+			label = "Lid";
+			gpios = <&gpio5 0 1>;
+			linux,input-type = <5>; /* EV_SW */
+			linux,code = <0>; /* SW_LID */
+			gpio-key,wakeup;
+			debounce-interval = <1>;
+		};
+	};
+};
+
+&iomuxc {
+	pinctrl_enet_ptp: enetptpgrp {
+		fsl,pins = <
+			MX6QDL_PAD_GPIO_16__ENET_REF_CLK 0x4001b0a8
+		>;
+	};
+
+	pinctrl_usdhc2: usdhc2grp {
+		fsl,pins = <
+			MX6QDL_PAD_SD2_CLK__SD2_CLK 0x17059
+			MX6QDL_PAD_SD2_CMD__SD2_CMD 0x17059
+			MX6QDL_PAD_SD2_DAT0__SD2_DATA0 0x17059
+			MX6QDL_PAD_SD2_DAT1__SD2_DATA1 0x17059
+			MX6QDL_PAD_SD2_DAT2__SD2_DATA2 0x17059
+			MX6QDL_PAD_SD2_DAT3__SD2_DATA3 0x17059
+			MX6QDL_PAD_NANDF_D4__SD2_DATA4 0x17059
+			MX6QDL_PAD_NANDF_D5__SD2_DATA5 0x17059
+			MX6QDL_PAD_NANDF_D6__SD2_DATA6 0x17059
+			MX6QDL_PAD_NANDF_D7__SD2_DATA7 0x17059
+
+			MX6QDL_PAD_GPIO_4__GPIO1_IO04 0x1b0b0 /* CD */
+		>;
+	};
+
+/* ???
+	pinctrl_hdmi_cec: hdmicecgrp {
+		fsl,pins = <
+			MX6QDL_PAD_EIM_A25__HDMI_TX_CEC_LINE 0x1f8b0
+		>;
+	};
+
+	pinctrl_hdmi_video: hdmivideogrp {
+		fsl,pins = <
+			MX6QDL_PAD_KEY_COL3__HDMI_TX_DDC_SCL 0x4001b8b1
+			MX6QDL_PAD_KEY_ROW3__HDMI_TX_DDC_SDA 0x4001b8b1
+		>;
+	};
+*/
+};

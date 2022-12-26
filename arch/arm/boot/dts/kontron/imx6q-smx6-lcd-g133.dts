@@ -1,0 +1,40 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright 2020 Kontron Europe GmbH
+ */
+
+/dts-v1/;
+
+#define SMX6_PANEL_LCD
+#define SMX6_PANEL_18BIT
+
+#define SMX6_SSI1_AUDIO
+#define SMX6_SSI1_AUDIO_OUTPUT 0
+
+#define SMX6_SERIAL_CAMERA
+#define SMX6_SERIAL_CAMERA_ENDPOINT ov5640_to_mipi_csi2
+#define SMX6_SERIAL_CAMERA_DATA_LANES 1 2
+#define SMX6_SERIAL_CAMERA_CLOCK_LANES 0
+
+#define smarc_sata sata
+
+#include "../imx6q-kontron-samx6i.dtsi"
+#include "imx6qdl-smx6.dtsi"
+#include "kontron-smarc-evaluation-carrier.dtsi"
+#include "smx6-ov5640-camera.dtsi"
+
+&lcd_panel_timings { // G133HAN01.0
+	clock-frequency = <141200000>;
+	hactive = <1920>;
+	vactive = <1080>;
+	hback-porch = <88>;
+	hfront-porch = <58>;
+	vback-porch = <14>;
+	vfront-porch = <8>;
+	hsync-len = <42>;
+	vsync-len = <14>;
+};
+
+&ldb {
+	status = "disabled";
+};
