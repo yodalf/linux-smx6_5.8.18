@@ -409,7 +409,7 @@ dtb-$(CONFIG_SOC_IMX53) += \
 	imx53-tx53-x13x.dtb \
 	imx53-usbarmory.dtb \
 	imx53-voipac-bsb.dtb
-dtb-$(CONFIG_SOC_IMX6Q) += \
+dtb-$(CONFIG_SOC_IMX6Q) +=  \
 	kontron/imx6q-smx6-lvds-pm070wl4.dtb \
 	kontron/imx6q-smx6-lvds-ld101.dtb \
 	kontron/imx6q-smx6-lvds-lb121.dtb \
