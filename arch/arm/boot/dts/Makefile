@@ -411,6 +411,7 @@ dtb-$(CONFIG_SOC_IMX53) += \
 	imx53-voipac-bsb.dtb
 dtb-$(CONFIG_SOC_IMX6Q) +=  \
 	kontron/imx6q-smx6-eval-valise.dtb \
+	kontron/imx6q-coresense.dtb \
 	kontron/imx6dl-smx6-lvds-pm070wl4.dtb \
 	kontron/imx6dl-smx6-lvds-ld101.dtb \
 	kontron/imx6dl-smx6-lvds-lb121.dtb \
