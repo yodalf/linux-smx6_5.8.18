@@ -164,6 +164,8 @@ static int gpio_wdt_probe(struct platform_device *pdev)
 	priv->always_running = of_property_read_bool(np,
 						     "always-running");
 
+    printk(KERN_ERR "WDT: always_running = %d", priv->always_running );
+
 	watchdog_set_drvdata(&priv->wdd, priv);
 
 	priv->wdd.info		= &gpio_wdt_ident;
