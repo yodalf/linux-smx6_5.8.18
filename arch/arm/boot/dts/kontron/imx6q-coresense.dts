@@ -2486,7 +2486,7 @@
 		compatible = "linux,wdt-gpio";
 		gpios = <0x0d 0x02 0x01>;
 		hw_algo = "toggle";
-		hw_margin_ms = <2000>;
+		hw_margin_ms = <2123>;
 	};
 
 	gpio-keys {
@@ -2525,7 +2525,7 @@
 		status = "okay";
 	};
 
-	ssi1_audio {
+	/*ssi1_audio {
 		ssi-controller = <0x7c>;
 		mux-int-port = <0x01>;
 		mux-ext-port = <0x03>;
@@ -2534,4 +2534,6 @@
 		audio-codec = <0x7d>;
 		audio-routing = "Headphone Jack\0HPOUTR\0Headphone Jack\0HPOUTL\0Mic Jack\0MICBIAS\0IN1L\0Mic Jack";
 	};
+    */
+
 };
