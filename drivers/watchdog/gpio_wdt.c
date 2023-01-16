@@ -122,7 +122,7 @@ static int gpio_wdt_probe(struct platform_device *pdev)
 	int ret;
 
 
-    printk(KERN_ERR "WDT probe\n");
+    printk(KERN_ERR "WDT probe 1\n");
 
 
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
