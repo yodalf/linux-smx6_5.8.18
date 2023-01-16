@@ -4,7 +4,7 @@
  *
  * Author: 2013, Alexander Shiyan <shc_work@mail.ru>
  */
-
+#include <linux/kernel.h>
 #include <linux/err.h>
 #include <linux/delay.h>
 #include <linux/module.h>
@@ -48,6 +48,8 @@ static void gpio_wdt_disable(struct gpio_wdt_priv *priv)
 static int gpio_wdt_ping(struct watchdog_device *wdd)
 {
 	struct gpio_wdt_priv *priv = watchdog_get_drvdata(wdd);
+
+    printk(KERN_ERR "WDT ping\n" );
 
 	switch (priv->hw_algo) {
 	case HW_ALGO_TOGGLE:
@@ -113,6 +115,10 @@ static int gpio_wdt_probe(struct platform_device *pdev)
 	const char *algo;
 	int ret;
 
+
+    printk(KERN_ERR "WDT probe\n");
+
+
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
@@ -123,6 +129,7 @@ static int gpio_wdt_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 	if (!strcmp(algo, "toggle")) {
+        printk(KERN_ERR "WDT: toggle algo\n");
 		priv->hw_algo = HW_ALGO_TOGGLE;
 		gflags = GPIOD_IN;
 	} else if (!strcmp(algo, "level")) {
@@ -136,6 +143,8 @@ static int gpio_wdt_probe(struct platform_device *pdev)
 	if (IS_ERR(priv->gpiod))
 		return PTR_ERR(priv->gpiod);
 
+    printk("WDT: got gpiod\n");
+
 	ret = of_property_read_u32(np,
 				   "hw_margin_ms", &hw_margin);
 	if (ret)
@@ -143,6 +152,8 @@ static int gpio_wdt_probe(struct platform_device *pdev)
 	/* Disallow values lower than 2 and higher than 65535 ms */
 	if (hw_margin < 2 || hw_margin > 65535)
 		return -EINVAL;
+
+    printk(KERN_ERR "WDT: hwmargin = %d\n", hw_margin);
 
 	priv->always_running = of_property_read_bool(np,
 						     "always-running");
