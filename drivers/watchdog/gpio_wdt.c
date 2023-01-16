@@ -37,6 +37,8 @@ struct gpio_wdt_priv {
 
 static void gpio_wdt_disable(struct gpio_wdt_priv *priv)
 {
+    printk(KERN_ERR "WDT: DISABLE\n");
+
 	/* Eternal ping */
 	gpiod_set_value_cansleep(priv->gpiod, 1);
 
@@ -71,6 +73,8 @@ static int gpio_wdt_start(struct watchdog_device *wdd)
 {
 	struct gpio_wdt_priv *priv = watchdog_get_drvdata(wdd);
 
+    printk(KERN_ERR "WDT: start\n");
+    
 	priv->state = 0;
 	gpiod_direction_output(priv->gpiod, priv->state);
 
@@ -82,6 +86,8 @@ static int gpio_wdt_start(struct watchdog_device *wdd)
 static int gpio_wdt_stop(struct watchdog_device *wdd)
 {
 	struct gpio_wdt_priv *priv = watchdog_get_drvdata(wdd);
+    
+    printk(KERN_ERR "WDT: stop\n");
 
 	if (!priv->always_running) {
 		gpio_wdt_disable(priv);
