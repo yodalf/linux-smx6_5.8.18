@@ -2486,6 +2486,7 @@
 		compatible = "linux,wdt-gpio";
 		gpios = <0x0d 0x02 0x01>;
 		hw_algo = "toggle";
+        always_running = <1>;
 		hw_margin_ms = <2123>;
 	};
 
