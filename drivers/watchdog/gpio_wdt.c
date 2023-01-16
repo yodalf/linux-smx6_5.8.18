@@ -51,7 +51,7 @@ static int gpio_wdt_ping(struct watchdog_device *wdd)
 {
 	struct gpio_wdt_priv *priv = watchdog_get_drvdata(wdd);
 
-    printk(KERN_ERR "WDT ping\n" );
+    //printk(KERN_ERR "WDT ping\n" );
 
 	switch (priv->hw_algo) {
 	case HW_ALGO_TOGGLE:
